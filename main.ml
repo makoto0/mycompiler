@@ -9,17 +9,17 @@ let rec printspace depth=
   |_ -> printspace (depth-1);
         Printf.printf "  "
 
-let rec printappargs l depth=
+let rec printsyntaxts l depth=
   match l with
   |[] -> ()
-  |x::xs -> printtreei x depth;printappargs xs depth
-and printletrecargs l depth=
+  |x::xs -> printsyntaxi x depth;printsyntaxts xs depth
+and printidtypes l depth=
   match l with
   |[] -> ()
   |(x,_)::xs ->printspace depth;
                Printf.printf "VAR %s\n" x;
-               printletrecargs xs depth
-and printtreei p depth=
+               printidtypes xs depth
+and printsyntaxi p depth=
   printspace depth;
   match p with
   |Unit -> Printf.printf "UNIT\n"
@@ -27,56 +27,75 @@ and printtreei p depth=
   |Int(i) -> Printf.printf "INT %d\n" i
   |Float(f) -> Printf.printf "FLOAT %f\n" f
   |Not(e) -> Printf.printf "NOT\n";
-             printtreei e (depth+1)
+             printsyntaxi e (depth+1)
   |Neg(e) -> Printf.printf "NEG\n";
-             printtreei e (depth+1)
+             printsyntaxi e (depth+1)
   |Add(e1,e2) -> Printf.printf "ADD\n";
-                 printtreei e1 (depth+1);
-		 printtreei e2 (depth+1)
+                 printsyntaxi e1 (depth+1);
+		 printsyntaxi e2 (depth+1)
   |Sub(e1,e2) -> Printf.printf "SUB\n";
-                 printtreei e1 (depth+1);
-		 printtreei e2 (depth+1)
+                 printsyntaxi e1 (depth+1);
+		 printsyntaxi e2 (depth+1)
   |FNeg(e) -> Printf.printf "FNEG\n";
-              printtreei e (depth+1)
+              printsyntaxi e (depth+1)
   |FAdd(e1,e2) -> Printf.printf "FADD\n";
-                  printtreei e1 (depth+1);
-		  printtreei e2 (depth+1)
+                  printsyntaxi e1 (depth+1);
+		  printsyntaxi e2 (depth+1)
   |FSub(e1,e2) -> Printf.printf "FSUB\n";
-                  printtreei e1 (depth+1);
-	 	  printtreei e2 (depth+1)
+                  printsyntaxi e1 (depth+1);
+	 	  printsyntaxi e2 (depth+1)
   |FMul(e1,e2) -> Printf.printf "FMUL\n";
-                  printtreei e1 (depth+1);
-		  printtreei e2 (depth+1)
+                  printsyntaxi e1 (depth+1);
+		  printsyntaxi e2 (depth+1)
   |FDiv(e1,e2) -> Printf.printf "FDIV\n";
-                  printtreei e1 (depth+1);
-		  printtreei e2 (depth+1)
+                  printsyntaxi e1 (depth+1);
+		  printsyntaxi e2 (depth+1)
   |Eq(e1,e2) -> Printf.printf "EQ\n";
-                printtreei e1 (depth+1);
-		printtreei e2 (depth+1)
+                printsyntaxi e1 (depth+1);
+		printsyntaxi e2 (depth+1)
   |LE(e1,e2) -> Printf.printf "LE\n";
-                printtreei e1 (depth+1);
-		printtreei e2 (depth+1)
+                printsyntaxi e1 (depth+1);
+		printsyntaxi e2 (depth+1)
   |If(e1,e2,e3) -> Printf.printf "IF\n";
-                   printtreei e1 (depth+1);
-		   printtreei e2 (depth+1);
-		   printtreei e3 (depth+1)
+                   printsyntaxi e1 (depth+1);
+		   printsyntaxi e2 (depth+1);
+		   printsyntaxi e3 (depth+1)
   |Let((e1,_),e2,e3) -> Printf.printf "LET\n";
                         Printf.printf "  VAR %s\n" e1;
-			printtreei e2 (depth+1);
-			printtreei e3 (depth+1);
+			printsyntaxi e2 (depth+1);
+			printsyntaxi e3 (depth+1);
   |Var(x) -> Printf.printf "VAR %s\n" x
   |LetRec({ name = (x, _); args = yts; body = e1 }, e2)->
     Printf.printf "LETREC\n";
     Printf.printf "  VAR %s\n" x;
-    printletrecargs yts (depth+2);
-    printtreei e1 (depth+1);
-    printtreei e2 (depth+1)
+    printidtypes yts (depth+2);
+    printsyntaxi e1 (depth+1);
+    printsyntaxi e2 (depth+1)
   |App(e1,e2) -> Printf.printf "APP\n";
-                 printtreei e1 (depth+1);
-		 printappargs e2 (depth+2);
-  |_ -> ()
+                 printsyntaxi e1 (depth+1);
+		 printsyntaxts e2 (depth+2)
+  |Tuple(l) -> Printf.printf "TUPLE\n";
+               printsyntaxts l (depth+1)
+  |LetTuple(l,e1,e2) ->
+    Printf.printf "LETTUPLE\n";
+    printidtypes l (depth+1);
+    printsyntaxi e1 (depth+1);
+    printsyntaxi e2 (depth+1)
+  |Array(e1,e2) ->
+    Printf.printf "ARRAY\n";
+    printsyntaxi e1 (depth+1);
+    printsyntaxi e2 (depth+1)
+  |Get(e1,e2) ->
+    Printf.printf "GET\n";
+    printsyntaxi e1 (depth+1);
+    printsyntaxi e2 (depth+1)
+  |Put(e1,e2,e3) ->
+    Printf.printf "PUT\n";
+    printsyntaxi e1 (depth+1);
+    printsyntaxi e2 (depth+1);
+    printsyntaxi e3 (depth+1)
 
-let printtree p=printtreei p 0
+let printsyntax p=printsyntaxi p 0
 (* 1-1 *)
 
 let rec iter n e = (* 最適化処理をくりかえす (caml2html: main_iter) *)
@@ -91,16 +110,18 @@ let lexbuf outchan l = (* バッファをコンパイルしてチャンネルへ出力する (caml2htm
   Id.counter := 0;
   Typing.extenv := M.empty;
   let p=(Parser.exp Lexer.token l) in
-  printtree p;
+  let n= (KNormal.f (Typing.f p)) in
+  Printf.printf "Syntax.t:\n";
+  printsyntax p;
+  (*Printf.printf "Normal.t:\n";
+  printnormal n;*)
   Emit.f outchan
     (RegAlloc.f
        (Simm.f
 	  (Virtual.f
 	     (Closure.f
 		(iter !limit
-		   (Alpha.f
-		      (KNormal.f
-			 (Typing.f p))))))))
+		   (Alpha.f n))))))
 
 let string s = lexbuf stdout (Lexing.from_string s) (* 文字列をコンパイルして標準出力に表示する (caml2html: main_string) *)
 
