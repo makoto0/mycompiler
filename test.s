@@ -1,8 +1,8 @@
 .data
 .align	8
 .text
-test.9:
-	addl	$6, %eax
+test.3:
+	addl	$3, %eax
 	ret
 .global	min_caml_start
 min_caml_start:
@@ -19,7 +19,7 @@ _min_caml_start: # for cygwin
 	movl	36(%esp),%eax
 	movl	%eax,min_caml_hp
 	movl	$10, %eax
-	call	test.9
+	call	test.3
 	call	min_caml_print_int
 	popl	%ebp
 	popl	%edi

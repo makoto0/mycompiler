@@ -1,4 +1,5 @@
 open Syntax
+open KNormal
 
 let limit = ref 1000
 
@@ -16,10 +17,18 @@ let rec printsyntaxts l depth=
 and printidtypes l depth=
   match l with
   |[] -> ()
-  |(x,_)::xs ->printspace depth;
-               Printf.printf "VAR %s\n" x;
-               printidtypes xs depth
-and printsyntaxi p depth=
+  |(x,_)::xs ->
+    printspace depth;
+    Printf.printf "VAR %s\n" x;
+    printidtypes xs depth
+and printids l depth=
+  match l with
+  |[] -> ()
+  |x::xs ->
+    printspace depth;
+    Printf.printf "VAR %s\n" x;
+    printids xs depth
+and printsyntaxi (p:Syntax.t) depth=
   printspace depth;
   match p with
   |Unit -> Printf.printf "UNIT\n"
@@ -61,13 +70,15 @@ and printsyntaxi p depth=
 		   printsyntaxi e2 (depth+1);
 		   printsyntaxi e3 (depth+1)
   |Let((e1,_),e2,e3) -> Printf.printf "LET\n";
-                        Printf.printf "  VAR %s\n" e1;
+                        printspace (depth+1);
+                        Printf.printf "VAR %s\n" e1;
 			printsyntaxi e2 (depth+1);
 			printsyntaxi e3 (depth+1);
   |Var(x) -> Printf.printf "VAR %s\n" x
   |LetRec({ name = (x, _); args = yts; body = e1 }, e2)->
     Printf.printf "LETREC\n";
-    Printf.printf "  VAR %s\n" x;
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" x;
     printidtypes yts (depth+2);
     printsyntaxi e1 (depth+1);
     printsyntaxi e2 (depth+1)
@@ -94,8 +105,128 @@ and printsyntaxi p depth=
     printsyntaxi e1 (depth+1);
     printsyntaxi e2 (depth+1);
     printsyntaxi e3 (depth+1)
+and printnormali n depth=
+  printspace depth;
+  match n with
+  |Unit -> Printf.printf "UNIT\n"
+  |Int(i) -> Printf.printf "INT %d\n" i
+  |Float(f) -> Printf.printf "FLOAT %f\n" f
+  |Neg(e) ->
+    Printf.printf "NEG\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e
+  |Add(e1,e2) ->
+    Printf.printf "ADD\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e1;
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e2
+  |Sub(e1,e2) ->
+    Printf.printf "SUB\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e1;
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e2
+  |FNeg(e) ->
+    Printf.printf "FNEG\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e;
+  |FAdd(e1,e2) ->
+    Printf.printf "FADD\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e1;
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e2
+  |FSub(e1,e2) ->
+    Printf.printf "FSUB\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e1;
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e2
+  |FMul(e1,e2) ->
+    Printf.printf "FMUL\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e1;
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e2
+  |FDiv(e1,e2) ->
+    Printf.printf "FDIV\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e1;
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e2
+  |IfEq(e1,e2,e3,e4) ->
+    Printf.printf "IFEQ\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e1;
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e2;
+    printnormali e3 (depth+1);
+    printnormali e4 (depth+1)
+  |IfLE(e1,e2,e3,e4) ->
+    Printf.printf "IFLE\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e1;
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e2;
+    printnormali e3 (depth+1);
+    printnormali e4 (depth+1)
+  |Let((e1,_),e2,e3) ->
+    Printf.printf "LET\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e1;
+    printnormali e2 (depth+1);
+    printnormali e3 (depth+1)
+  |Var(e) ->
+    Printf.printf "VAR %s\n" e
+  |LetRec({ name = (x, _); args = yts; body = e1 }, e2)->
+    Printf.printf "LETREC\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" x;
+    printidtypes yts (depth+2);
+    printnormali e1 (depth+1);
+    printnormali e2 (depth+1)
+  |App(e1,l) ->
+    Printf.printf "APP\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e1;
+    printids l (depth+2)
+  |Tuple(l) ->
+    Printf.printf "TUPLE\n";
+    printids l (depth+1)
+  |LetTuple(l,e1,e2) ->
+    Printf.printf "LETTUPLE\n";
+    printidtypes l (depth+1);
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e1;
+    printnormali e2 (depth+1)
+  |Get(e1,e2) ->
+    Printf.printf "GET\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e1;
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e2
+  |Put(e1,e2,e3) ->
+    Printf.printf "PUT\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e1;
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e2;
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e3
+  |ExtArray(e) ->
+    Printf.printf "EXTARRAY\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e
+  |ExtFunApp(e,l) ->
+    Printf.printf "EXTFUNAPP\n";
+    printspace (depth+1);
+    Printf.printf "VAR %s\n" e;
+    printids l (depth+2)
 
 let printsyntax p=printsyntaxi p 0
+
+let printnormal n=printnormali n 0
 (* 1-1 *)
 
 let rec iter n e = (* 最適化処理をくりかえす (caml2html: main_iter) *)
@@ -110,11 +241,11 @@ let lexbuf outchan l = (* バッファをコンパイルしてチャンネルへ出力する (caml2htm
   Id.counter := 0;
   Typing.extenv := M.empty;
   let p=(Parser.exp Lexer.token l) in
-  let n= (KNormal.f (Typing.f p)) in
+  let n=(KNormal.f (Typing.f p)) in
   Printf.printf "Syntax.t:\n";
   printsyntax p;
-  (*Printf.printf "Normal.t:\n";
-  printnormal n;*)
+  Printf.printf "Normal.t:\n";
+  printnormal n;
   Emit.f outchan
     (RegAlloc.f
        (Simm.f
